@@ -1,16 +1,40 @@
 services:
   client:
+    container_name: frontend
     build: client
     restart: unless-stopped
     volumes:
       - ./client/src:/app/src
     ports:
       - 5173:5173
+    depends_on:
+      - server
 
   server:
+    container_name: backend
     build: server
     restart: unless-stopped
     volumes:
       - ./server:/app
     ports:
       - 8000:8000
+    depends_on:
+      - database
+
+  database:
+    container_name: database
+    image: postgres:17.5
+    restart: unless-stopped
+    env_file:
+      - project.env
+
+  database-migrations:
+    container_name: migration
+    image: flyway/flyway:11.10
+    env_file:
+      - project.env
+    depends_on:
+      - database
+    volumes:
+      - ./database-migrations:/flyway/db/migration
+    command: -connectRetries=60 -baselineOnMigrate=true migrate
